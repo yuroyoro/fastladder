@@ -52,6 +52,7 @@ init_services() {
     bundle_cmd install
     rake_cmd "db:create"
     rake_cmd "db:migrate"
+    rake_cmd "assets:precompile"
 
     compose_up -d app
     compose_ps
