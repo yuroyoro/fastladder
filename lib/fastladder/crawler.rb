@@ -15,6 +15,10 @@ module Fastladder
     CRAWL_NOW = 10
     GETA = [12307].pack("U")
 
+    # preserve html in Atom entry content with type="xhtml"
+    # https://github.com/feedjira/feedjira/issues/214
+    Feedjira::Parser::Atom.preprocess_xml = true
+
     def self.start(options = {})
       logger = options[:logger]
 
