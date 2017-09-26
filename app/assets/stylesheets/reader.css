@@ -18,6 +18,18 @@ body{
 	height : 100%;
 	overflow : hidden;
 }
+
+.clearfix:after{
+	content: ".";
+	display: block;
+	height: 0;
+	clear: both;
+	visibility: hidden;
+}
+.clearfix{
+	zoom:1;
+}
+
 #help_window{
 	background : #fff;
 	border : 2px solid #4889fd;

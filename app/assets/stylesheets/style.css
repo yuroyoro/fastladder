@@ -27,7 +27,7 @@ kbd{
   margin-right: 2px;
   vertical-align: top;
   font-family: sans-serif;
-} 
+}
 
 button,select,input{
 	font-size : 100%;
@@ -50,6 +50,10 @@ a:hover, h2 a:hover{
 
 a:active{
 /*	color:#003492;text-decoration:none;*/
+}
+
+a {
+  color: #1B95E0;
 }
 
 
@@ -421,7 +425,7 @@ a.feedlink{
 	cursor : pointer;
 }
 
-/* 
+/*
  Item
 */
 .item{
@@ -430,8 +434,18 @@ a.feedlink{
 	border-bottom : 2px solid #a5c5ff;
 }
 
+.item img{
+	border : 1px solid #888;
+	border-color : #ccc #888 #888 #ccc;
+  margin-right: 10px;
+}
 .item_header{
 	margin : 0;
+}
+
+.item_header h2{
+  font-size: 110%;
+  color: #333;
 }
 
 .item_title{
@@ -444,8 +458,12 @@ a.feedlink{
 	padding : 2px 5px 5px 10px;
 }
 
+.item_info a{
+  font-size: 80%;
+}
+
 .item_body{
-	font-size : 100%;
+	font-size : 90%;
 	line-height : 150%;
 	margin : 13px 20px;
 }
@@ -553,7 +571,7 @@ a.feedlink{
 .label{
 	font-weight : bold;
 	color : #666;
-	
+
 }
 
 
@@ -669,7 +687,7 @@ span.undo{
  */
 #manage_control{
 	padding : 4px;
-	
+
 }
 
 #manage_control select{
