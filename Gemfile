@@ -50,6 +50,7 @@ gem 'opml', git: 'https://github.com/fastladder/opml'
 gem 'sass-rails', '~> 5.0.0'
 gem 'settingslogic'
 gem 'uglifier', '>= 1.3.0'
+gem 'foreman'
 
 if ENV['NEW_RELIC_LICENSE_KEY']
   gem 'newrelic_rpm'

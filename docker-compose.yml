@@ -1,0 +1,33 @@
+version: "2"
+services:
+  app:
+    build: .
+    command:
+      [ "foreman", "start", "-p", "3000"]
+    environment:
+      DISABLE_SPRING: "1"
+      HOME: "/app"
+    ports:
+      - "5000:3000"
+    volumes:
+      - ".:/app"
+      - "bundle:/bundle"
+    links:
+      - "pg"
+    user: "${UID}:${GID}"
+
+  pg:
+    image: postgres:9.6
+    ports:
+      - '5438:5432'
+    environment:
+      POSTGRES_DB:       fastladder
+      POSTGRES_USER:     fastladder
+    volumes:
+      - 'data:/var/lib/postgresql/data'
+
+volumes:
+  bundle:
+    driver: 'local'
+  data:
+    driver: 'local'

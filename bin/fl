@@ -1,0 +1,308 @@
+#!/bin/bash
+
+__readlink_f() {
+  TARGET_FILE=$1
+
+  while [ "$TARGET_FILE" != "" ]; do
+      cd `dirname $TARGET_FILE`
+      FILENAME=`basename $TARGET_FILE`
+      TARGET_FILE=`readlink $FILENAME`
+  done
+
+  echo `pwd -P`/$FILENAME
+}
+
+file=$(__readlink_f $0)
+bindir=$(dirname $file)
+base=$(cd $(dirname $bindir);pwd)
+appname=$(basename $base)
+
+GID=$(id -g)
+export UID
+export GID
+
+declare -r compose=`which docker-compose`
+if [[ -x "$compose" ]]; then
+    :
+else
+    echo "Please install Docker before run this command."
+    exit 2
+fi
+
+rm=""
+if [ -z "$CIRCLE_CI" ] ; then
+    rm="--rm"
+fi
+
+
+
+echoing() {
+    echo "========================================================"
+    echo $1
+    echo "========================================================"
+}
+
+init_services() {
+    echoing "Building containers $*"
+    compose_build app
+    compose_up -d pg
+
+    # sleep 30
+
+    bundle_cmd install
+    rake_cmd "db:create"
+    rake_cmd "db:migrate"
+
+    compose_up -d app
+    compose_ps
+}
+
+compose_up() {
+    echoing "Create and start containers $*"
+    $compose up -d $1
+}
+
+compose_down() {
+    echoing "Stop and remove containers $*"
+    $compose down $@
+}
+
+compose_build() {
+    echoing "Build containers $*"
+    $compose build $@
+}
+
+compose_start() {
+    echoing "Start services $*"
+    $compose start $*
+}
+
+compose_stop() {
+    echoing "Stop services $*"
+    $compose stop $*
+}
+
+compose_restart() {
+    echoing "Restart services $*"
+    $compose restart $*
+}
+
+compose_ps() {
+    echoing "Showing running containers"
+    $compose ps
+}
+
+clobber() {
+    echoing "Clobber"
+    echo "This will destroy all containers and volumes belong to ${appname}"
+    read -p "Continue (y/N)? " choice
+    case "$choice" in
+        y|Y)
+            $compose rm -f
+            compose_down --rmi all -v --remove-orphans
+            ;;
+        n|N) echo "Canceled";;
+        * ) echo "Canceled";;
+    esac
+}
+
+logs() {
+    echoing "Logs $*"
+    $compose logs -f $1
+}
+
+invoke_bash() {
+    $compose run $rm -u root $1 bash
+}
+
+invoke_run() {
+    renv=""
+    if [ -n "$RAILS_ENV" ]; then
+        renv="-e RAILS_ENV=$RAILS_ENV "
+    fi
+
+    $compose run $rm ${renv}$*
+}
+
+run_app() {
+    invoke_run app $*
+}
+
+rails_server() {
+    compose_stop app
+    rm tmp/pids/server.pid
+    $compose run $rm --service-ports app rails s -b 0.0.0.0
+}
+
+rails_cmd() {
+    bundle_exec rails $*
+}
+
+rake_cmd() {
+    bundle_exec rake $*
+}
+
+rspec_cmd() {
+    bundle_exec rspec $*
+}
+
+bundle_cmd() {
+    invoke_run app bundle $*
+}
+
+bundle_exec() {
+    invoke_run app bundle exec $*
+}
+
+yarn_cmd() {
+    $compose run $rm app yarn $*
+}
+
+cap_cmd() {
+
+    eval `ssh-agent -a $base/tmp/ssh-auth-sock`
+    ssh-add ~/.ssh/id_rsa # TODO customize key
+    if [ -z "$BRANCH" ]; then
+      $compose run $rm -e SSH_AUTH_SOCK=/app/tmp/ssh-auth-sock app cap $*
+    else
+      $compose run $rm -e SSH_AUTH_SOCK=/app/tmp/ssh-auth-sock -e BRANCH=$BRANCH app cap $*
+    fi
+    ssh-agent -k
+}
+
+rubocop_cmd() {
+    $compose run $rm app bundle exec rubocop $*
+}
+
+rails_console() {
+    # (workarrond)
+    # docker-compose run does not recognize the .docker/config.json,
+    # so it could not change detach keys.
+    #
+    # Pass --detach-keys to docker-compose 揃 Issue #3311
+    # docker/compose https://github.com/docker/compose/issues/3311
+
+    docker run $rm -it -v "$PWD":/app -v "${appname}_bundle":/bundle -u "$(id -u):$(id -g)" --link "${appname}_pg_1:pg" --link "${appname}_gp_1:gp" --net "${appname}_default" "${appname}_app" rails c $*
+}
+
+rake_reset_db() {
+    echoing "Running reset db"
+    compose_stop app
+    rake_cmd "db:reset"
+    compose_up app
+}
+
+psql_console() {
+    db="$1"
+    if [ -z "$1" ] ; then
+        db="${appname}"
+    fi
+
+    # docker-compose run $rm pg psql -h ${appname}_pg_1 -p 5432 -U ${appname} ${appname}_dev
+
+    docker run $rm -it -v "${appname}_data":/var/lib/postgresql/data --link "${appname}_pg_1:pg" --link "${appname}_gp_1:gp" --net "${appname}_default" postgres:9.6 psql -h "${appname}_pg_1" -p 5432 -U ${appname} $db
+}
+
+cmd=$1
+shift
+case "$cmd" in
+    init)
+        init_services && exit 0
+        ;;
+    up)
+        compose_up $* && compose_ps && exit 0
+        ;;
+    build)
+        compose_build $* && exit 0
+        ;;
+    start)
+        compose_start $* && exit 0
+        ;;
+    stop)
+        compose_stop $* && exit 0
+        ;;
+    restart)
+        compose_restart $* && exit 0
+        ;;
+    down)
+        compose_down $* && exit 0
+        ;;
+    clobber)
+        clobber && exit 0
+        ;;
+    logs)
+        logs $*
+        ;;
+    bash)
+        invoke_bash $*
+        ;;
+    run)
+        invoke_run $*
+        ;;
+    server)
+        rails_server $*
+        ;;
+    rails)
+        rails_cmd $*
+        ;;
+    repl)
+        rails_console $*
+        ;;
+    rake)
+        rake_cmd $*
+        ;;
+    rspec)
+        rspec_cmd $*
+        ;;
+    bundle)
+        bundle_cmd $*
+        ;;
+    yarn)
+        yarn_cmd $*
+        ;;
+    cap)
+        cap_cmd $*
+        ;;
+    rubocop)
+        rubocop_cmd $*
+        ;;
+    reset-db)
+        rake_reset_db
+        ;;
+    psql)
+        psql_console $*
+        ;;
+    *)
+        read -d '' help <<-EOF
+Usage: $0 command
+
+Service:
+  init     Initialize backend services then run
+  up       Create service containers and start backend services
+  down     Stop backend services and remove service containers
+  start    Start services
+  stop     Stop services
+  logs     [options] default: none. View output from containers
+  bash     [service] invoke bash
+  run      [service] [command] run command in given container
+  clobber
+
+Rails:
+  server   Run rails server
+  rails    [args] Run rails command in app container
+  rake     [args] Run rake command in app container
+  rspec    [args] Run rspec command in app container
+  bundle   [args] Run bundle command in app container
+  repl     Run rails console
+  cap      [args] Run cap command in app container
+  rubocop  [args] Run rubocop
+  crawler  lauch crawler process
+
+DB:
+  reset-db            reset database
+  psql                launch psql console
+EOF
+        echo "$help"
+        exit 2
+        ;;
+esac
