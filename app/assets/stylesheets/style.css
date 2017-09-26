@@ -438,6 +438,8 @@ a.feedlink{
 	border : 1px solid #888;
 	border-color : #ccc #888 #888 #ccc;
   margin-right: 10px;
+  max-height: 400px;
+  width: auto;
 }
 .item_header{
 	margin : 0;
