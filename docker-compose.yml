@@ -17,7 +17,7 @@ services:
     user: "${UID}:${GID}"
     environment:
       RAILS_ENV: "production"
-      SECRET_KEY_BASE: "CHANGE YOUR KEY"
+      SECRET_KEY_BASE: "${SECRET_KEY_BASE}"
 
   pg:
     image: postgres:9.6
