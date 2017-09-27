@@ -24,7 +24,8 @@ class SubscribeController < ApplicationController
       feeds << feed
     end
     if feeds.empty?
-      flash[:notice] = "please check URL"
+      flash[:notice] = "No feed found. please check the URL"
+      flash[:url] = @url
       return (redirect_to action: "index")
     end
     @feeds = feeds

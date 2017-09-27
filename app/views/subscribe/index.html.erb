@@ -6,7 +6,7 @@
 	<div class="sub-content">
 	<form name="subscribe" action="/subscribe/" method="GET">
 		Blog or Feed URL:
-		<input type="text" name="url" size="30" value="http://"> <input type="submit" value="subscribe">
+        <input type="text" name="url" size="30" value="<%= flash[:url] || "http://" %>"> <input type="submit" value="subscribe">
 	</form>
 	</div>
 
