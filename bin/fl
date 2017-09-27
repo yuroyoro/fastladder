@@ -87,6 +87,11 @@ compose_stop() {
     $compose stop $*
 }
 
+compose_rm() {
+    echoing "Remove service container $*"
+    $compose rm $*
+}
+
 compose_restart() {
     echoing "Restart services $*"
     $compose restart $*
@@ -266,6 +271,9 @@ case "$cmd" in
     stop)
         compose_stop $* && exit 0
         ;;
+    rm)
+        compose_rm $* && exit 0
+        ;;
     restart)
         compose_restart $* && exit 0
         ;;
@@ -334,6 +342,7 @@ Service:
   down     Stop backend services and remove service containers
   start    Start services
   stop     Stop services
+  rm       Remove given container
   logs     [options] default: none. View output from containers
   bash     [service] invoke bash
   run      [service] [command] run command in given container
