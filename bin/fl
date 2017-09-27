@@ -195,6 +195,10 @@ rails_console() {
     docker run $rm -it -v "$PWD":/app -v "${appname}_bundle":/bundle -u "$(id -u):$(id -g)" --link "${appname}_pg_1:pg" --link "${appname}_gp_1:gp" --net "${appname}_default" "${appname}_app" rails c $*
 }
 
+crawler_cmd() {
+    bundle_exec ruby script/crawler $*
+}
+
 rake_reset_db() {
     echoing "Running reset db"
     compose_stop app
@@ -321,6 +325,9 @@ case "$cmd" in
         ;;
     reset-db)
         rake_reset_db
+        ;;
+    crawler)
+        crawler_cmd $*
         ;;
     psql)
         psql_console $*
