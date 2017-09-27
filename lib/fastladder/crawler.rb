@@ -51,12 +51,13 @@ module Fastladder
         error: false,
         response_code: nil,
       }
+      feedlink = feed.feedlink
       REDIRECT_LIMIT.times do
         begin
-          @logger.info "fetch: #{feed.feedlink}"
-          response = Fastladder.fetch(feed.feedlink, modified_on: feed.modified_on)
+          @logger.info "fetch: #{feedlink}"
+          response = Fastladder.fetch(feedlink, modified_on: feed.modified_on)
         end
-        @logger.info "HTTP status: [#{response.code}] #{feed.feedlink}"
+        @logger.info "HTTP status: [#{response.code}] #{feedlink}"
         case response
         when Net::HTTPNotModified
           break
@@ -80,10 +81,9 @@ module Fastladder
         #   end
         #   break
         when Net::HTTPRedirection
-          @logger.info "Redirect: #{feed.feedlink} => #{response["location"]}"
-          feed.feedlink = URI.join(feed.feedlink, response["location"])
-          feed.modified_on = nil
-          feed.save
+          # TODO: should refactor loop structure and error handling.
+          # currently implementation is too complex...
+          feedlink = handle_redirection_on_crawl(feed, response)
         else
           # HTTPUnknownResponse, HTTPInformation
           result[:message] = "Error: #{response.code} #{response.message}"
@@ -264,5 +264,20 @@ module Fastladder
       }.size <= 5
     end
 
+    def handle_redirection_on_crawl(feed, response)
+      @logger.info "Redirect: #{feed.feedlink} => #{response["location"]}"
+      feedlink = URI.join(feed.feedlink, response["location"]).to_s
+      other = Feed.where(feedlink: feedlink).first
+      if other
+        @logger.warn "Duplicated feedlink detected: Feed(id: #{feed.id} title: #{feed.title}) : #{feedlink} is already exist as Feed(id: #{other.id} title: #{other.title})"
+      else
+        feed.feedlink = feedlink
+      end
+
+      feed.modified_on = nil
+      feed.save
+
+      feedlink
+    end
   end
 end
