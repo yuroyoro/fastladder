@@ -28,6 +28,8 @@ ENV PATH=$PATH:/bundle/bin
 
 Run gem install foreman
 
+RUN apt-get install -y imagemagick
+
 # workarround for git-clone fails when current user is not in /etc/passwd
 RUN git config --system user.name Docker && git config --system user.email docker@localhost
 EXPOSE 3000
