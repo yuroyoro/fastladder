@@ -248,6 +248,9 @@ pg_restore() {
 cmd=$1
 shift
 case "$cmd" in
+    ps)
+      $compose ps
+      ;;
     init)
         init_services && exit 0
         ;;
@@ -325,6 +328,7 @@ case "$cmd" in
 Usage: $0 command
 
 Service:
+  ps       Show service status
   init     Initialize backend services then run
   up       Create service containers and start backend services
   down     Stop backend services and remove service containers
