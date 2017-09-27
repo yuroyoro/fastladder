@@ -34,7 +34,11 @@ if [ -z "$CIRCLE_CI" ] ; then
     rm="--rm"
 fi
 
+if [ -z "$RAILS_ENV" ]; then
+    export RAILS_ENV="production"
+fi
 
+export SECRET_KEY_BASE=$(cat .secret_key_base)
 
 echoing() {
     echo "========================================================"
