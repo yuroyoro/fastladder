@@ -105,13 +105,18 @@ class Feed < ActiveRecord::Base
     end
   end
 
+  def mimetype_icon?(response)
+    response.meta["content-type"].in?(["image/vnd.microsoft.icon", "image/x-icon"])
+  end
+
   def fetch_favicon!
     self.favicon ||= Favicon.new(feed: self)
     favicon_list.each do |uri|
       next unless response = open(uri.to_s) rescue nil # ensure timeout
       next if response.status.last.to_i >= 400
       # MiniMagick will determine the image type from extension of file name
-      ext = response.meta["content-type"] == 'image/vnd.microsoft.icon' ? ".ico" : File.basename(uri.to_s)
+      ext = mimetype_icon?(response) ? ".ico" : File.basename(uri.to_s)
+
       tmp = Tempfile.new(["favicon", ext])
       tmp.binmode
       tmp.write response.read
