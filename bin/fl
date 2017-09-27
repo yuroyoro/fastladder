@@ -196,13 +196,50 @@ rake_reset_db() {
 psql_console() {
     db="$1"
     if [ -z "$1" ] ; then
-        db="${appname}"
+        db="${appname}_production"
     fi
 
     # docker-compose run $rm pg psql -h ${appname}_pg_1 -p 5432 -U ${appname} ${appname}_dev
 
     docker run $rm -it -v "${appname}_data":/var/lib/postgresql/data --link "${appname}_pg_1:pg" --link "${appname}_gp_1:gp" --net "${appname}_default" postgres:9.6 psql -h "${appname}_pg_1" -p 5432 -U ${appname} $db
 }
+
+pg_dump() {
+    db="$1"
+    if [ -z "$1" ] ; then
+        db="${appname}_production"
+    fi
+
+
+    tm=$(date +\%Y\%m\%d-\%H\%M)
+    dump_file=tmp/dbdump-${db}-${tm}.dump
+
+    echoing "Dump database $db data to $dump_file"
+
+    docker-compose run $rm pg pg_dump -h ${appname}_pg_1 -p 5432 -U ${appname} $db > $dump_file
+    echo "done"
+}
+
+pg_restore() {
+    dump_file="$1"
+    if [ ! -e "$dump_file" ] ; then
+        echo "dump file $dump_file is not exist"
+        exit 1
+    fi
+
+    local_dump=$(__readlink_f "$dump_file")
+
+    db="$2"
+    if [ -z "$2" ] ; then
+        db="${appname}_production"
+    fi
+
+    echoing "Restore database $db data from $dump_file"
+
+    docker run $rm -i -v "${local_dump}":/tmp/db.dump -v "${appname}_data":/var/lib/postgresql/data --link "${appname}_pg_1:pg" --link "${appname}_gp_1:gp" --net "${appname}_default" postgres:9.6 psql -h "${appname}_pg_1" -p 5432 -U ${appname} -f /tmp/db.dump $db
+    echo "done"
+}
+
 
 cmd=$1
 shift
@@ -272,6 +309,12 @@ case "$cmd" in
         ;;
     psql)
         psql_console $*
+        ;;
+    pg_dump)
+        pg_dump $*
+        ;;
+    pg_restore)
+        pg_restore $*
         ;;
     *)
         read -d '' help <<-EOF
